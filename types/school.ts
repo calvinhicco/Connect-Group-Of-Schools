@@ -67,10 +67,20 @@ export interface Expense {
   reversed?: boolean
 }
 
+export interface ExtraBillingPayment {
+  amount: number
+  date?: string
+}
+
+export interface ExtraBillingEntry {
+  deleted?: boolean
+  payments?: ExtraBillingPayment[]
+}
+
 export interface ExtraBillingPage {
   id: string
   name: string
-  entries?: { amount: number }[]
+  entries?: ExtraBillingEntry[]
 }
 
 export interface OutstandingStudent {
