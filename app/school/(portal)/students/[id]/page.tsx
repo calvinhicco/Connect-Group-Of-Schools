@@ -1,23 +1,46 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, User } from "lucide-react"
-import { subscribeOne } from "@/lib/realtime"
-import type { Student } from "@/types/school"
+import { subscribeOne, subscribeAppSettings } from "@/lib/realtime"
+import { calculateOutstandingFromEnrollment, formatMoney } from "@/lib/calculations"
+import {
+  formatBillingStartSummary,
+  getEffectiveBillingPeriodStart,
+} from "@/lib/billingStart"
+import type { AppSettings, Student } from "@/types/school"
 
 export default function SchoolStudentDetailPage() {
   const params = useParams()
   const id = params?.id as string
   const [student, setStudent] = useState<Student | null>(null)
+  const [settings, setSettings] = useState<AppSettings | null>(null)
 
   useEffect(() => {
     if (!id) return
-    return subscribeOne<Student>("students", id, setStudent)
+    const unsubStudent = subscribeOne<Student>("students", id, setStudent)
+    const unsubSettings = subscribeAppSettings<AppSettings>(setSettings)
+    return () => {
+      unsubStudent()
+      unsubSettings()
+    }
   }, [id])
 
+  const outstanding = useMemo(() => {
+    if (!student || !settings) return student?.totalOwed ?? 0
+    return calculateOutstandingFromEnrollment(student, settings)
+  }, [student, settings])
+
+  const effectiveBillingStart = useMemo(() => {
+    if (!student || !settings) return null
+    return getEffectiveBillingPeriodStart(student, settings)
+  }, [student, settings])
+
   if (!id) return null
+
+  const currency = settings?.currency || "$"
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
@@ -47,12 +70,27 @@ export default function SchoolStudentDetailPage() {
             <span className="text-slate-500">Address:</span> {student?.address ?? "—"}
           </div>
           <div>
-            <span className="text-slate-500">Total Paid:</span> {student?.totalPaid ?? 0}
+            <span className="text-slate-500">Admission:</span>{" "}
+            {student?.admissionDate
+              ? new Date(student.admissionDate).toLocaleDateString()
+              : "—"}
           </div>
           <div>
-            <span className="text-slate-500">Outstanding:</span> {student?.totalOwed ?? 0}
+            <span className="text-slate-500">Billing starts:</span>{" "}
+            {effectiveBillingStart ? effectiveBillingStart.toLocaleDateString() : "—"}
+          </div>
+          <div>
+            <span className="text-slate-500">Total Paid:</span>{" "}
+            {formatMoney(student?.totalPaid ?? 0, currency)}
+          </div>
+          <div>
+            <span className="text-slate-500">Outstanding:</span>{" "}
+            {formatMoney(outstanding, currency)}
           </div>
         </div>
+        {settings && (
+          <p className="mt-4 text-xs text-slate-500">{formatBillingStartSummary(settings)}</p>
+        )}
       </div>
     </div>
   )

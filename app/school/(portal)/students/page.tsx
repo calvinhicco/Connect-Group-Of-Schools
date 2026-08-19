@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Users } from "lucide-react"
 import { getInitial, subscribe, subscribeAppSettings } from "@/lib/realtime"
-import { calculateOutstandingFromEnrollment } from "@/lib/calculations"
+import { calculateOutstandingFromEnrollment, formatMoney } from "@/lib/calculations"
 import type { AppSettings, Student } from "@/types/school"
 
 export default function SchoolStudentsPage() {
@@ -13,10 +13,15 @@ export default function SchoolStudentsPage() {
 
   useEffect(() => {
     getInitial<Student>("students").then(setStudents)
-    subscribeAppSettings<AppSettings>(setSettings)
+    const unsubSettings = subscribeAppSettings<AppSettings>(setSettings)
     const unsub = subscribe<Student>("students", setStudents)
-    return () => unsub()
+    return () => {
+      unsub()
+      unsubSettings()
+    }
   }, [])
+
+  const currency = settings?.currency || "$"
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
@@ -41,8 +46,8 @@ export default function SchoolStudentsPage() {
               <span>
                 Outstanding:{" "}
                 {settings
-                  ? calculateOutstandingFromEnrollment(s, settings.billingCycle)
-                  : (s.totalOwed ?? 0)}
+                  ? formatMoney(calculateOutstandingFromEnrollment(s, settings), currency)
+                  : formatMoney(s.totalOwed ?? 0, currency)}
               </span>
             </div>
           </div>

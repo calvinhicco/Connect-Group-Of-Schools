@@ -5,6 +5,12 @@ export const BillingCycle = {
   TERMLY: "termly" as BillingCycleType,
 }
 
+export const TERMS = [
+  { name: "Term 1", months: [1, 2, 3, 4], period: 1 },
+  { name: "Term 2", months: [5, 6, 7, 8], period: 2 },
+  { name: "Term 3", months: [9, 10, 11, 12], period: 3 },
+]
+
 export interface FeePayment {
   period: number
   amountDue: number
@@ -42,6 +48,7 @@ export interface Student {
   academicYear?: string
   hasTransport: boolean
   transportFee: number
+  transportActivationDate?: string
   feePayments: FeePayment[]
   transportPayments?: TransportPayment[]
   totalPaid?: number
@@ -54,6 +61,8 @@ export interface AppSettings {
   billingCycle: BillingCycleType
   paymentDueDate?: number
   transportDueDate?: number
+  /** School-wide billing start (YYYY-MM-DD). Billing uses max(admission, this date). */
+  startBillingDate?: string
 }
 
 export interface Expense {
